@@ -100,10 +100,14 @@
   <h2>3. 对阵表</h2>
   <div class="row">
     <button class="ghost" onclick="copyAll()">复制文本</button>
-    <button class="ghost" onclick="exportImage()">导出图片</button>
+    <button class="ghost" onclick="copyImage()">复制图片</button>
     <button class="ghost" onclick="window.print()">打印 / 存 PDF</button>
   </div>
   <div id="result"><span class="hint">尚未生成</span></div>
+  <div id="imgWrap" style="margin-top:14px">
+    <div class="hint" style="margin:0 0 6px">生成后自动出图片，点「复制图片」可直接粘贴到微信</div>
+    <img id="resultImg" style="display:none;width:100%;border-radius:10px;border:1px solid var(--line)">
+  </div>
 </div>
 
 <div class="card" style="display:none">
@@ -135,6 +139,7 @@ const $ = id => document.getElementById(id);
 let players = [];   // {no,name,level,gender,partner}
 let globalLevelAvg = 0;
 let balanceNote = '';
+let lastImageData = null;
 let mode = 'open';
 let onNeed = null;    // 每轮上场性别需求 {m,f}
 let groupNeed = null; // 每片场 4 人组性别需求 {m,f}
@@ -275,6 +280,7 @@ function generate(){
   lastResult = {courts,perCourt,totalMin,roundMin,rounds,schedule,players,played};
   render(schedule, players, played, roundMin, totalMin, courts);
   saveLocal();
+  captureImage();
 }
 
 function pickOncourt(units, unitOf, played, need, n){
@@ -493,17 +499,23 @@ function updateModeWarn(){
   else if(mode==='mens'){ const need = courts*4; if(M<need) msg = `男双每轮需 ${need} 名男性，当前 ${M} 名，将降级为不限`; }
   el.textContent = msg;
 }
-async function exportImage(){
-  if(!lastResult){ toast('请先生成'); return; }
-  if(typeof html2canvas === 'undefined'){ toast('导出组件未加载（需联网）'); return; }
-  toast('正在生成图片...');
+async function captureImage(){
+  if(!lastResult) return;
+  if(typeof html2canvas === 'undefined') return;
   try{
     const canvas = await html2canvas($('result'), {backgroundColor:'#0d1426', scale:2, useCORS:true, logging:false});
-    const a = document.createElement('a');
-    a.href = canvas.toDataURL('image/png'); a.download = '羽毛球对阵.png';
-    document.body.appendChild(a); a.click(); a.remove();
-    toast('已导出图片');
-  }catch(e){ toast('导出失败：' + e.message); }
+    lastImageData = canvas.toDataURL('image/png');
+    const img = $('resultImg');
+    img.src = lastImageData; img.style.display = 'block';
+  }catch(e){}
+}
+async function copyImage(){
+  if(!lastImageData){ toast('请先生成'); return; }
+  try{
+    const blob = await (await fetch(lastImageData)).blob();
+    await navigator.clipboard.write([new ClipboardItem({'image/png': blob})]);
+    toast('图片已复制，可直接粘贴到微信');
+  }catch(e){ toast('复制失败：可长按/右键保存图片'); }
 }
 loadLocal();
 </script>
