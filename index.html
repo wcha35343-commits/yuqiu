@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>羽毛球约局 · 对阵生成器</title>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <style>
   :root{--bg:#0b1020;--card:rgba(255,255,255,.055);--line:rgba(255,255,255,.12);--txt:#eef2ff;--sub:#9aa7c7;--acc:#5eead4;--acc2:#818cf8;--warn:#fbbf24;--m:#60a5fa;--f:#f472b6;--green:#34d399}
   *{box-sizing:border-box}
@@ -74,7 +75,7 @@
 <div class="card opts">
   <h2>2. 参数</h2>
   <div class="row">
-    <span>场地数 <input type="number" id="courts" value="2" min="1" max="10"></span>
+    <span>场地数 <input type="number" id="courts" value="2" min="1" max="10" oninput="updateModeWarn()"></span>
     <span>每片场人数 <input type="number" id="perCourt" value="6" min="4" max="12"></span>
     <span>总时长(分) <input type="number" id="totalMin" value="120" min="10" step="10"></span>
     <span>每轮时长(分) <input type="number" id="roundMin" value="20" min="5" step="5"></span>
@@ -86,6 +87,7 @@
     <button class="mode-btn" data-mode="womens">女双</button>
     <button class="mode-btn" data-mode="mixed">混双</button>
   </div>
+  <div id="modeWarn" style="color:#f87171;font-size:13px;margin:2px 0 6px"></div>
   <div class="row">
     <label><input type="checkbox" id="balanceLevel" checked> 按等级均衡两队</label>
     <label><input type="checkbox" id="coverage" checked> 尽量人人互相打过（覆盖率优先）</label>
@@ -98,6 +100,7 @@
   <h2>3. 对阵表</h2>
   <div class="row">
     <button class="ghost" onclick="copyAll()">复制文本</button>
+    <button class="ghost" onclick="exportImage()">导出图片</button>
     <button class="ghost" onclick="window.print()">打印 / 存 PDF</button>
   </div>
   <div id="result"><span class="hint">尚未生成</span></div>
@@ -173,6 +176,7 @@ function parseRaw(){
   const noLevel = players.filter(p=>p.level==null).length;
   renderRoster();
   toast(`已解析 ${players.length} 人，${noLevel} 人未填等级`);
+  updateModeWarn();
 }
 function parseLevel(t){
   let m = t.match(/^(\d+)\s*级?$/); if(m) return +m[1];
@@ -476,8 +480,31 @@ async function loadCloud(){
 
 document.querySelectorAll('.mode-btn').forEach(b=>b.addEventListener('click',()=>{
   document.querySelectorAll('.mode-btn').forEach(x=>x.classList.remove('active'));
-  b.classList.add('active'); mode = b.dataset.mode;
+  b.classList.add('active'); mode = b.dataset.mode; updateModeWarn();
 }));
+function updateModeWarn(){
+  const el = $('modeWarn'); if(!el) return;
+  const courts = Math.max(1, +($('courts').value || 1));
+  const M = players.filter(p=>p.gender==='M').length;
+  const F = players.filter(p=>p.gender==='F').length;
+  let msg = '';
+  if(mode==='mixed'){ const need = courts*2; if(M<need||F<need) msg = `混双每轮需 ${need} 男 ${need} 女，当前 ${M} 男 ${F} 女，将降级为不限`; }
+  else if(mode==='womens'){ const need = courts*4; if(F<need) msg = `女双每轮需 ${need} 名女性，当前 ${F} 名，将降级为不限`; }
+  else if(mode==='mens'){ const need = courts*4; if(M<need) msg = `男双每轮需 ${need} 名男性，当前 ${M} 名，将降级为不限`; }
+  el.textContent = msg;
+}
+async function exportImage(){
+  if(!lastResult){ toast('请先生成'); return; }
+  if(typeof html2canvas === 'undefined'){ toast('导出组件未加载（需联网）'); return; }
+  toast('正在生成图片...');
+  try{
+    const canvas = await html2canvas($('result'), {backgroundColor:'#0d1426', scale:2, useCORS:true, logging:false});
+    const a = document.createElement('a');
+    a.href = canvas.toDataURL('image/png'); a.download = '羽毛球对阵.png';
+    document.body.appendChild(a); a.click(); a.remove();
+    toast('已导出图片');
+  }catch(e){ toast('导出失败：' + e.message); }
+}
 loadLocal();
 </script>
 </body>
