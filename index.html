@@ -5,39 +5,51 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>羽毛球约局 · 对阵生成器</title>
 <style>
-  :root{--bg:#0f172a;--card:#1e293b;--line:#334155;--txt:#e2e8f0;--sub:#94a3b8;--acc:#38bdf8;--acc2:#22c55e;--warn:#f59e0b}
+  :root{--bg:#0b1020;--card:rgba(255,255,255,.055);--line:rgba(255,255,255,.12);--txt:#eef2ff;--sub:#9aa7c7;--acc:#5eead4;--acc2:#818cf8;--warn:#fbbf24;--m:#60a5fa;--f:#f472b6;--green:#34d399}
   *{box-sizing:border-box}
-  body{margin:0;background:var(--bg);color:var(--txt);font:15px/1.6 -apple-system,"PingFang SC","Microsoft YaHei",sans-serif;padding:24px}
-  h1{font-size:22px;margin:0 0 18px}
-  h2{font-size:15px;margin:0 0 12px;color:var(--acc)}
-  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:16px;max-width:960px}
-  textarea{width:100%;min-height:120px;background:#0b1220;color:var(--txt);border:1px solid var(--line);border-radius:8px;padding:10px;font:14px/1.5 ui-monospace,Consolas,monospace;resize:vertical}
-  input[type=number]{width:76px;background:#0b1220;color:var(--txt);border:1px solid var(--line);border-radius:6px;padding:6px 8px}
-  input[type=text]{background:#0b1220;color:var(--txt);border:1px solid var(--line);border-radius:6px;padding:6px 8px;width:100%}
-  button{background:var(--acc);color:#04293b;border:0;border-radius:8px;padding:9px 16px;font-weight:600;cursor:pointer;margin:6px 8px 0 0}
-  button.ghost{background:transparent;color:var(--acc);border:1px solid var(--acc)}
-  button.green{background:var(--acc2);color:#052e16}
-  label{display:inline-flex;align-items:center;gap:6px;color:var(--sub);margin-right:14px;cursor:pointer}
-  .row{display:flex;flex-wrap:wrap;gap:14px;align-items:center;margin:8px 0}
-  .roster{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
-  .chip{background:#0b1220;border:1px solid var(--line);border-radius:20px;padding:4px 10px;font-size:13px}
+  body{margin:0;color:var(--txt);font:15px/1.6 -apple-system,"PingFang SC","Microsoft YaHei",sans-serif;padding:28px 20px 60px;min-height:100vh;
+    background:
+      radial-gradient(1000px 520px at 15% -8%,rgba(56,189,248,.20),transparent 60%),
+      radial-gradient(900px 480px at 108% 6%,rgba(129,140,248,.20),transparent 60%),
+      radial-gradient(700px 500px at 50% 120%,rgba(52,211,153,.12),transparent 60%),
+      linear-gradient(160deg,#0b1020,#0d1426 60%,#0b1020)}
+  h1{font-size:26px;margin:0 0 20px;letter-spacing:.5px;background:linear-gradient(90deg,#5eead4,#818cf8);-webkit-background-clip:text;background-clip:text;color:transparent}
+  h2{font-size:15px;margin:0 0 12px;color:var(--acc);font-weight:600;letter-spacing:.3px}
+  .card{background:var(--card);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid var(--line);border-radius:16px;padding:18px;margin:0 auto 16px;max-width:960px;box-shadow:0 10px 34px rgba(0,0,0,.28)}
+  textarea{width:100%;min-height:120px;background:rgba(2,6,23,.6);color:var(--txt);border:1px solid var(--line);border-radius:10px;padding:12px;font:14px/1.55 ui-monospace,Consolas,monospace;resize:vertical}
+  textarea:focus,input:focus,select:focus{outline:none;border-color:var(--acc);box-shadow:0 0 0 3px rgba(94,234,212,.15)}
+  input[type=number]{width:78px;background:rgba(2,6,23,.6);color:var(--txt);border:1px solid var(--line);border-radius:8px;padding:7px 9px}
+  input[type=text]{background:rgba(2,6,23,.6);color:var(--txt);border:1px solid var(--line);border-radius:8px;padding:8px 10px;width:100%}
+  button{background:linear-gradient(90deg,var(--acc),var(--acc2));color:#06202a;border:0;border-radius:10px;padding:10px 18px;font-weight:700;cursor:pointer;margin:6px 8px 0 0;transition:.15s;box-shadow:0 4px 14px rgba(94,234,212,.25)}
+  button:hover{transform:translateY(-1px);filter:brightness(1.06)}
+  button.ghost{background:rgba(255,255,255,.04);color:var(--txt);border:1px solid var(--line);box-shadow:none}
+  button.green{background:linear-gradient(90deg,var(--green),var(--acc));color:#052e16}
+  label{display:inline-flex;align-items:center;gap:7px;color:var(--sub);margin-right:14px;cursor:pointer}
+  .row{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin:8px 0}
+  .roster{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+  .chip{background:rgba(2,6,23,.55);border:1px solid var(--line);border-radius:999px;padding:5px 12px;font-size:13px}
   .chip b{color:var(--acc)}
-  .chip .lv{color:var(--warn);margin-left:4px}
-  .chip .pt{color:var(--acc2);margin-left:4px}
-  table{width:100%;border-collapse:collapse;margin-top:10px;font-size:14px}
-  th,td{border:1px solid var(--line);padding:8px;text-align:left;vertical-align:top}
-  th{background:#0b1220;color:var(--acc);white-space:nowrap}
-  .court{color:var(--acc2);font-weight:600}
+  .chip .lv{color:var(--warn);margin-left:5px}
+  .chip .pt{color:var(--green);margin-left:5px}
+  table{width:100%;border-collapse:separate;border-spacing:0;margin-top:12px;font-size:14px;overflow:hidden;border-radius:10px;border:1px solid var(--line)}
+  th,td{padding:9px 10px;text-align:left;vertical-align:top;border-bottom:1px solid var(--line)}
+  tr:last-child td{border-bottom:0}
+  th{background:rgba(2,6,23,.7);color:var(--acc);white-space:nowrap;font-weight:600}
+  tbody tr:nth-child(even){background:rgba(255,255,255,.025)}
+  .court{color:var(--green);font-weight:600}
   .rest{color:var(--sub)}
-  .meta{color:var(--sub);font-size:13px;margin-top:8px}
-  .stat{display:flex;gap:18px;flex-wrap:wrap;margin-top:10px;color:var(--sub);font-size:13px}
+  .meta{color:var(--sub);font-size:13px;margin-top:10px}
+  .stat{display:flex;gap:16px;flex-wrap:wrap;margin-top:12px;color:var(--sub);font-size:13px;background:rgba(2,6,23,.35);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
   .stat b{color:var(--txt)}
-  .hint{color:var(--sub);font-size:13px;margin-top:6px}
-  .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--acc2);color:#052e16;padding:10px 18px;border-radius:8px;font-weight:600;opacity:0;transition:.25s}
+  .hint{color:var(--sub);font-size:13px;margin-top:8px}
+  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:linear-gradient(90deg,var(--green),var(--acc));color:#052e16;padding:11px 20px;border-radius:999px;font-weight:700;opacity:0;transition:.25s;box-shadow:0 8px 24px rgba(0,0,0,.35)}
   .toast.show{opacity:1}
-  .score{width:52px;background:#0b1220;color:var(--txt);border:1px solid var(--line);border-radius:5px;padding:3px 6px;text-align:center}
-  select{background:#0b1220;color:var(--txt);border:1px solid var(--line);border-radius:6px;padding:6px 8px}
-  @media print{.card{border:0;background:#fff;color:#000}textarea,button,.opts{display:none}body{background:#fff;color:#000}}
+  .score{width:54px;background:rgba(2,6,23,.7);color:var(--txt);border:1px solid var(--line);border-radius:7px;padding:4px 6px;text-align:center}
+  select{background:rgba(2,6,23,.7);color:var(--txt);border:1px solid var(--line);border-radius:8px;padding:7px 10px}
+  .mode-btn{background:rgba(255,255,255,.04);border:1px solid var(--line);color:var(--sub);border-radius:999px;padding:8px 18px;font-weight:600;cursor:pointer;margin:4px 6px 0 0;transition:.15s}
+  .mode-btn:hover{color:var(--txt);border-color:var(--acc)}
+  .mode-btn.active{background:linear-gradient(90deg,var(--acc),var(--acc2));color:#06202a;border-color:transparent;box-shadow:0 4px 14px rgba(129,140,248,.3)}
+  @media print{.card{border:0;background:#fff;color:#000;box-shadow:none;backdrop-filter:none}textarea,button,.opts,.mode-btn{display:none}body{background:#fff;color:#000}h1{color:#000;background:none;-webkit-text-fill-color:#000}}
 </style>
 </head>
 <body>
@@ -68,7 +80,13 @@
     <span>每轮时长(分) <input type="number" id="roundMin" value="20" min="5" step="5"></span>
   </div>
   <div class="row">
-    <span>赛制 <select id="mode"><option value="open" selected>不限（自由双打）</option><option value="mixed">混双（每队 1 男 1 女）</option><option value="womens">女双（每队 2 女）</option><option value="mens">男双（每队 2 男）</option></select></span>
+    <span style="color:var(--sub)">赛制</span>
+    <button class="mode-btn active" data-mode="open">不限</button>
+    <button class="mode-btn" data-mode="mens">男双</button>
+    <button class="mode-btn" data-mode="womens">女双</button>
+    <button class="mode-btn" data-mode="mixed">混双</button>
+  </div>
+  <div class="row">
     <label><input type="checkbox" id="balanceLevel" checked> 按等级均衡两队</label>
     <label><input type="checkbox" id="coverage" checked> 尽量人人互相打过（覆盖率优先）</label>
   </div>
@@ -85,7 +103,7 @@
   <div id="result"><span class="hint">尚未生成</span></div>
 </div>
 
-<div class="card">
+<div class="card" style="display:none">
   <h2>4. 保存到 Supabase（可选）</h2>
   <div class="hint">不填也能用（仅存浏览器本地）。填入后可将对局存到云端、历史可查。Key 只需 anon 公钥。</div>
   <details style="margin-top:8px"><summary style="color:var(--sub);cursor:pointer">首次使用：在 Supabase 控制台建表（展开）</summary>
@@ -201,7 +219,7 @@ function generate(){
   globalLevelAvg = 0;
   if(hasAnyLevel){ const ls = players.filter(p=>p.level!=null).map(p=>p.level); globalLevelAvg = ls.reduce((a,b)=>a+b,0)/ls.length; }
   balanceNote = (balanceLevelRaw && !hasAnyLevel) ? '，未填等级，已忽略等级均衡' : '';
-  mode = $('mode').value;
+  /* 赛制由上方按钮组设置 */
   const cntM = players.filter(p=>p.gender==='M').length;
   const cntF = players.filter(p=>p.gender==='F').length;
   if(mode==='mixed'){ onNeed={m:courts*2,f:courts*2}; groupNeed={m:2,f:2}; if(cntM<onNeed.m||cntF<onNeed.f){ mode='open'; balanceNote+='，男女不足混双已降级为不限'; } }
@@ -456,6 +474,10 @@ async function loadCloud(){
   }catch(e){ toast('读取失败：'+e.message); }
 }
 
+document.querySelectorAll('.mode-btn').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('.mode-btn').forEach(x=>x.classList.remove('active'));
+  b.classList.add('active'); mode = b.dataset.mode;
+}));
 loadLocal();
 </script>
 </body>
