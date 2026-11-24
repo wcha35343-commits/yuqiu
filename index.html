@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>羽毛球约局 · 对阵生成器</title>
+<style>
+  :root{--bg:#0f172a;--card:#1e293b;--line:#334155;--txt:#e2e8f0;--sub:#94a3b8;--acc:#38bdf8;--acc2:#22c55e;--warn:#f59e0b}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--txt);font:15px/1.6 -apple-system,"PingFang SC","Microsoft YaHei",sans-serif;padding:24px}
+  h1{font-size:22px;margin:0 0 18px}
+  h2{font-size:15px;margin:0 0 12px;color:var(--acc)}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:16px;max-width:960px}
+  textarea{width:100%;min-height:120px;background:#0b1220;color:var(--txt);border:1px solid var(--line);border-radius:8px;padding:10px;font:14px/1.5 ui-monospace,Consolas,monospace;resize:vertical}
+  input[type=number]{width:76px;background:#0b1220;color:var(--txt);border:1px solid var(--line);border-radius:6px;padding:6px 8px}
+  input[type=text]{background:#0b1220;color:var(--txt);border:1px solid var(--line);border-radius:6px;padding:6px 8px;width:100%}
+  button{background:var(--acc);color:#04293b;border:0;border-radius:8px;padding:9px 16px;font-weight:600;cursor:pointer;margin:6px 8px 0 0}
+  button.ghost{background:transparent;color:var(--acc);border:1px solid var(--acc)}
+  button.green{background:var(--acc2);color:#052e16}
+  label{display:inline-flex;align-items:center;gap:6px;color:var(--sub);margin-right:14px;cursor:pointer}
+  .row{display:flex;flex-wrap:wrap;gap:14px;align-items:center;margin:8px 0}
+  .roster{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+  .chip{background:#0b1220;border:1px solid var(--line);border-radius:20px;padding:4px 10px;font-size:13px}
+  .chip b{color:var(--acc)}
+  .chip .lv{color:var(--warn);margin-left:4px}
+  .chip .pt{color:var(--acc2);margin-left:4px}
+  table{width:100%;border-collapse:collapse;margin-top:10px;font-size:14px}
+  th,td{border:1px solid var(--line);padding:8px;text-align:left;vertical-align:top}
+  th{background:#0b1220;color:var(--acc);white-space:nowrap}
+  .court{color:var(--acc2);font-weight:600}
+  .rest{color:var(--sub)}
+  .meta{color:var(--sub);font-size:13px;margin-top:8px}
+  .stat{display:flex;gap:18px;flex-wrap:wrap;margin-top:10px;color:var(--sub);font-size:13px}
+  .stat b{color:var(--txt)}
+  .hint{color:var(--sub);font-size:13px;margin-top:6px}
+  .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--acc2);color:#052e16;padding:10px 18px;border-radius:8px;font-weight:600;opacity:0;transition:.25s}
+  .toast.show{opacity:1}
+  .score{width:52px;background:#0b1220;color:var(--txt);border:1px solid var(--line);border-radius:5px;padding:3px 6px;text-align:center}
+  select{background:#0b1220;color:var(--txt);border:1px solid var(--line);border-radius:6px;padding:6px 8px}
+  @media print{.card{border:0;background:#fff;color:#000}textarea,button,.opts{display:none}body{background:#fff;color:#000}}
+</style>
+</head>
+<body>
+<h1>🏸 羽毛球约局 · 对阵生成器</h1>
+
+<div class="card">
+  <h2>1. 粘贴微信接龙</h2>
+  <textarea id="raw" placeholder="每行一人，例如：
+1 张三
+2 李四 7
+3 王五 6 固搭:赵六
+4 赵六 6"></textarea>
+  <div class="hint">格式：序号 姓名 [等级] [固搭:队友名]。等级用于均衡，可省略；固搭两人必须都出现。</div>
+  <div class="row" style="margin-top:10px">
+    <button onclick="parseRaw()">解析名单</button>
+    <button class="ghost" onclick="demo()">填入示例 12 人</button>
+    <button class="ghost" onclick="clearAll()">清空</button>
+  </div>
+  <div class="roster" id="roster"></div>
+</div>
+
+<div class="card opts">
+  <h2>2. 参数</h2>
+  <div class="row">
+    <span>场地数 <input type="number" id="courts" value="2" min="1" max="10"></span>
+    <span>每片场人数 <input type="number" id="perCourt" value="6" min="4" max="12"></span>
+    <span>总时长(分) <input type="number" id="totalMin" value="120" min="10" step="10"></span>
+    <span>每轮时长(分) <input type="number" id="roundMin" value="20" min="5" step="5"></span>
+  </div>
+  <div class="row">
+    <span>赛制 <select id="mode"><option value="open" selected>不限（自由双打）</option><option value="mixed">混双（每队 1 男 1 女）</option><option value="womens">女双（每队 2 女）</option><option value="mens">男双（每队 2 男）</option></select></span>
+    <label><input type="checkbox" id="balanceLevel" checked> 按等级均衡两队</label>
+    <label><input type="checkbox" id="coverage" checked> 尽量人人互相打过（覆盖率优先）</label>
+  </div>
+  <button class="green" onclick="generate()">生成对阵</button>
+  <div class="hint" id="paramHint"></div>
+</div>
+
+<div class="card">
+  <h2>3. 对阵表</h2>
+  <div class="row">
+    <button class="ghost" onclick="copyAll()">复制文本</button>
+    <button class="ghost" onclick="window.print()">打印 / 存 PDF</button>
+  </div>
+  <div id="result"><span class="hint">尚未生成</span></div>
+</div>
+
+<div class="card">
+  <h2>4. 保存到 Supabase（可选）</h2>
+  <div class="hint">不填也能用（仅存浏览器本地）。填入后可将对局存到云端、历史可查。Key 只需 anon 公钥。</div>
+  <details style="margin-top:8px"><summary style="color:var(--sub);cursor:pointer">首次使用：在 Supabase 控制台建表（展开）</summary>
+  <pre style="background:#0b1220;padding:10px;border-radius:8px;overflow:auto;font-size:12px">create table if not exists sessions (
+  id bigint generated by default as identity primary key,
+  name text,
+  payload jsonb,
+  created_at timestamptz default now()
+);
+alter table sessions enable row level security;
+create policy "anon read" on sessions for select to anon using (true);
+create policy "anon insert" on sessions for insert to anon with check (true);</pre></details>
+  <div class="row"><input type="text" id="sbUrl" placeholder="https://你的项目.supabase.co"></div>
+  <div class="row"><input type="text" id="sbKey" placeholder="anon public key"></div>
+  <div class="row">
+    <button class="ghost" onclick="saveCloud()">保存当前对局到云端</button>
+    <button class="ghost" onclick="loadCloud()">读取历史对局</button>
+  </div>
+  <div id="cloud"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const $ = id => document.getElementById(id);
+let players = [];   // {no,name,level,gender,partner}
+let globalLevelAvg = 0;
+let balanceNote = '';
+let mode = 'open';
+let onNeed = null;    // 每轮上场性别需求 {m,f}
+let groupNeed = null; // 每片场 4 人组性别需求 {m,f}
+
+function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+function genderCount(arr, players){
+  let m = 0, f = 0;
+  for(const i of arr){ const g = players[i].gender; if(g === 'M') m++; else if(g === 'F') f++; }
+  return {m, f};
+}
+function teamModeOk(t, players){
+  if(mode === 'open') return true;
+  const g = genderCount(t, players);
+  if(mode === 'mixed') return g.m === 1 && g.f === 1;
+  if(mode === 'womens') return g.f === 2;
+  if(mode === 'mens') return g.m === 2;
+  return true;
+}
+let lastResult = null;
+
+function toast(msg){ const t=$('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),1600); }
+
+function parseRaw(){
+  const lines = $('raw').value.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
+  players = [];
+  for(const ln of lines){
+    if(/^#/.test(ln)) continue;
+    let rest = ln;
+    let no = players.length + 1;
+    const nm = rest.match(/^(\d+)\s*[.、．,，号]?\s*/);
+    if(nm){ no = parseInt(nm[1],10); rest = rest.slice(nm[0].length).trim(); }
+    let partner = null;
+    const pm = rest.match(/固搭\s*[:：]?\s*(\S+)/);
+    if(pm){ partner = pm[1]; rest = rest.replace(pm[0],'').trim(); }
+    players.push(mk(rest, no, partner));
+  }
+  const names = new Set(players.map(p=>p.name));
+  for(const p of players){ if(p.partner && !names.has(p.partner)) p.partner = null; }
+  const noLevel = players.filter(p=>p.level==null).length;
+  renderRoster();
+  toast(`已解析 ${players.length} 人，${noLevel} 人未填等级`);
+}
+function parseLevel(t){
+  let m = t.match(/^(\d+)\s*级?$/); if(m) return +m[1];
+  m = t.match(/^(?:等级|lv|L)\s*(\d+)$/i); if(m) return +m[1];
+  return null;
+}
+function parseGender(t){
+  if(/^(男|M|male|先生)$/i.test(t)) return 'M';
+  if(/^(女|F|female|女士)$/i.test(t)) return 'F';
+  return null;
+}
+function mk(text, no, partner){
+  const parts = text.split(/[\s,，、]+/).filter(Boolean);
+  const name = parts[0] || ('选手' + no);
+  let level = null, gender = null;
+  for(let i=1;i<parts.length;i++){
+    const lv = parseLevel(parts[i]); if(lv!=null){ level = lv; continue; }
+    const g = parseGender(parts[i]); if(g) gender = g;
+  }
+  return {no, name, level, gender, partner: partner||null};
+}
+function renderRoster(){
+  $('roster').innerHTML = players.map(p=>
+    `<span class="chip"><b>${p.no}.</b> ${p.name}${p.gender?`<span style="color:${p.gender==='M'?'#60a5fa':'#f472b6'};margin-left:3px">${p.gender==='M'?'♂':'♀'}</span>`:''}${p.level!=null?`<span class="lv">${p.level}级</span>`:''}${p.partner?`<span class="pt">固搭:${p.partner}</span>`:''}</span>`
+  ).join('');
+}
+function demo(){
+  $('raw').value = ['1 张三 7','2 李四 6','3 王五 7','4 赵六 6','5 孙七 8','6 周八 5','7 吴九 7','8 郑十 6','9 钱十一 8','10 孔十二 5','11 冯十三 7','12 陈十四 6'].join('\n');
+  parseRaw();
+}
+function clearAll(){ $('raw').value=''; players=[]; renderRoster(); $('result').innerHTML='<span class="hint">尚未生成</span>'; }
+
+function generate(){
+  const courts = Math.max(1, +$('courts').value||1);
+  const perCourt = Math.max(4, +$('perCourt').value||6);
+  const totalMin = Math.max(10, +$('totalMin').value||120);
+  const roundMin = Math.max(5, +$('roundMin').value||20);
+  const balanceLevelRaw = $('balanceLevel').checked;
+  const coverage = $('coverage').checked;
+  const n = players.length;
+  if(n < courts*4){ toast('人数不足：至少需 '+(courts*4)+' 人'); return; }
+  const hasAnyLevel = players.some(p=>p.level!=null);
+  const balanceLevel = balanceLevelRaw && hasAnyLevel;
+  globalLevelAvg = 0;
+  if(hasAnyLevel){ const ls = players.filter(p=>p.level!=null).map(p=>p.level); globalLevelAvg = ls.reduce((a,b)=>a+b,0)/ls.length; }
+  balanceNote = (balanceLevelRaw && !hasAnyLevel) ? '，未填等级，已忽略等级均衡' : '';
+  mode = $('mode').value;
+  const cntM = players.filter(p=>p.gender==='M').length;
+  const cntF = players.filter(p=>p.gender==='F').length;
+  if(mode==='mixed'){ onNeed={m:courts*2,f:courts*2}; groupNeed={m:2,f:2}; if(cntM<onNeed.m||cntF<onNeed.f){ mode='open'; balanceNote+='，男女不足混双已降级为不限'; } }
+  else if(mode==='womens'){ onNeed={m:0,f:courts*4}; groupNeed={m:0,f:4}; if(cntF<onNeed.f){ mode='open'; balanceNote+='，女性不足女双已降级为不限'; } }
+  else if(mode==='mens'){ onNeed={m:courts*4,f:0}; groupNeed={m:4,f:0}; if(cntM<onNeed.m){ mode='open'; balanceNote+='，男性不足男双已降级为不限'; } }
+  else { onNeed=null; groupNeed=null; }
+
+  const onPerRound = courts*4;
+  const rounds = Math.max(1, Math.floor(totalMin/roundMin));
+  const partner = new Map();
+  for(const p of players){ if(p.partner) { if(!partner.has(p.name)) partner.set(p.name, new Set()); partner.get(p.name).add(p.partner); } }
+
+  const played = new Array(n).fill(0);
+  const partnerSeen = new Set();   // 同队组合 key
+  const oppSeen = new Set();       // 对手组合 key
+  const idx = players.map((_,i)=>i);
+
+  // 固搭单元：两人绑定
+  const unitOf = new Array(n).fill(-1);
+  const units = [];
+  for(let i=0;i<n;i++){ if(unitOf[i]>=0) continue; const pn=players[i].partner; const j=pn?players.findIndex(p=>p.name===pn):-1; if(j>i){ unitOf[i]=units.length; unitOf[j]=units.length; units.push([i,j]); } else units.push([i]); }
+
+  const schedule = [];
+  for(let r=0;r<rounds;r++){
+    // 选上场：采样 + 均衡（含赛制性别约束）
+    let bestOn=null, bestScore=1e9;
+    for(let s=0;s<4000;s++){
+      const on = pickOncourt(units, unitOf, played, onPerRound, n);
+      if(!on) continue;
+      const arr = on.slice();
+      const mean = arr.reduce((a,i)=>a+played[i],0)/arr.length;
+      const variance = arr.reduce((a,i)=>a+Math.pow(played[i]-mean,2),0)/arr.length;
+      const score = mean + variance*0.05;
+      if(score<bestScore){ bestScore=score; bestOn=on; }
+    }
+    if(!bestOn){ mode='open'; onNeed=null; groupNeed=null; balanceNote+='，性别不满足赛制已降级为不限';
+      bestScore=1e9;
+      for(let s=0;s<4000;s++){ const on=pickOncourt(units, unitOf, played, onPerRound, n); if(!on) continue;
+        const arr=on.slice(); const mean=arr.reduce((a,i)=>a+played[i],0)/arr.length;
+        if(mean<bestScore){ bestScore=mean; bestOn=on; } } }
+    const onSet = new Set(bestOn);
+    const rest = idx.filter(i=>!onSet.has(i));
+    // 分组：courts 片场，每片 4 人
+    const groups = partition(bestOn, courts, players, balanceLevel, coverage, partnerSeen, oppSeen, partner);
+    schedule.push({round:r+1, groups, rest:[...rest]});
+    for(const i of bestOn) played[i]+=roundMin;
+    for(const g of groups){ recordPairs(g, partnerSeen, oppSeen); }
+  }
+  lastResult = {courts,perCourt,totalMin,roundMin,rounds,schedule,players,played};
+  render(schedule, players, played, roundMin, totalMin, courts);
+  saveLocal();
+}
+
+function pickOncourt(units, unitOf, played, need, n){
+  // 随机化单元顺序，贪心凑够 need 人
+  const order = shuffle(units.map((u,i)=>i));
+  const chosen = [];
+  let cnt = 0;
+  for(const ui of order){
+    const u = units[ui];
+    if(cnt + u.length > need) continue;
+    // 优先选打得少的单元
+    chosen.push(ui); cnt += u.length;
+    if(cnt===need) break;
+  }
+  if(cnt!==need) return null;
+  // 打散成人数组
+  let on = [];
+  for(const ui of chosen) on.push(...units[ui]);
+  // 若单元选择导致人数不符（固搭造成），回退为纯随机散客
+  if(on.length!==need){
+    const shuffled = shuffle([...Array(n).keys()]).slice(0,need);
+    on = shuffled;
+  }
+  if(onNeed){ const g = genderCount(on, players); if(g.m!==onNeed.m || g.f!==onNeed.f) return null; }
+  return on;
+}
+
+function scoreGroups(groups, players, balanceLevel, coverage, partnerSeen, oppSeen, partner){
+  let sc = 0;
+  for(const g of groups){
+    const [t1,t2] = splitTeams(g, players, balanceLevel, coverage, partnerSeen, oppSeen, partner);
+    for(const [a,b] of [[t1[0],t1[1]],[t2[0],t2[1]]]){
+      if(partner.get(players[a].name)?.has(players[b].name)) sc += 100;
+    }
+    if(coverage){ sc += pairNew(t1,partnerSeen)*30 + pairNew(t2,partnerSeen)*30 + oppNew(t1,t2,oppSeen)*30; }
+    if(balanceLevel){ sc -= Math.abs(avgLevel(t1,players)-avgLevel(t2,players))*10; }
+  }
+  return sc;
+}
+function partition(on, courts, players, balanceLevel, coverage, partnerSeen, oppSeen, partner){
+  const need = courts*4;
+  let best=null, bestScore=-1e9;
+  for(let s=0;s<6000;s++){
+    const shuffled = shuffle(on.slice());
+    const groups = [];
+    for(let c=0;c<courts;c++) groups.push(shuffled.slice(c*4,c*4+4));
+    if(groupNeed){ let ok=true; for(const g of groups){ const gc=genderCount(g,players); if(gc.m!==groupNeed.m||gc.f!==groupNeed.f){ ok=false; break; } } if(!ok) continue; }
+    const score = scoreGroups(groups, players, balanceLevel, coverage, partnerSeen, oppSeen, partner);
+    if(score>bestScore){ bestScore=score; best=groups; }
+  }
+  if(!best){ const sh=on.slice().sort(()=>Math.random()-0.5); best=[]; for(let c=0;c<courts;c++) best.push(sh.slice(c*4,c*4+4)); }
+  // 组内分两队
+  return best.map(g=>({teams: splitTeams(g, players, balanceLevel, coverage, partnerSeen, oppSeen, partner)}));
+}
+function splitTeams(g4, players, balanceLevel, coverage, partnerSeen, oppSeen, partner){
+  // 4 人分 2 队各 2 人：3 种分法
+  const splits = [[[0,1],[2,3]],[[0,2],[1,3]],[[0,3],[1,2]]];
+  let best=null, bestScore=-1e9;
+  for(const sp of splits){
+    const t1 = [g4[sp[0][0]],g4[sp[0][1]]], t2=[g4[sp[1][0]],g4[sp[1][1]]];
+    let sc = 0;
+    // 赛制约束（混双/男双/女双）
+    sc += (teamModeOk(t1,players)?1:0)*1000 + (teamModeOk(t2,players)?1:0)*1000;
+    // 固搭同队
+    for(const [a,b] of [[t1[0],t1[1]],[t2[0],t2[1]]]){
+      if(partner.get(players[a].name)?.has(players[b].name)) sc += 100;
+    }
+    // 覆盖率
+    if(coverage){
+      sc += pairNew(t1,partnerSeen)*30 + pairNew(t2,partnerSeen)*30;
+      sc += oppNew(t1,t2,oppSeen)*30;
+    }
+    // 等级均衡
+    if(balanceLevel){
+      const l1 = avgLevel(t1,players), l2 = avgLevel(t2,players);
+      sc -= Math.abs(l1-l2)*10;
+    }
+    if(sc>bestScore){ bestScore=sc; best=[t1,t2]; }
+  }
+  return best;
+}
+function pairNew(t, seen){ return seen.has(pk(t))?0:1; }
+function oppNew(t1,t2, seen){ let c=0; for(const a of t1) for(const b of t2) if(!seen.has(pk([a,b]))) c++; return c/4; }
+function avgLevel(t, players){ const ls=t.map(i=>players[i].level).map(x=>x==null?globalLevelAvg:x); return ls.reduce((a,b)=>a+b,0)/ls.length; }
+function pk(t){ return t.map(i=>i).sort((a,b)=>a-b).join('-'); }
+function recordPairs(g, partnerSeen, oppSeen){
+  const [t1,t2] = g.teams;
+  partnerSeen.add(pk(t1)); partnerSeen.add(pk(t2));
+  for(const a of t1) for(const b of t2) oppSeen.add(pk([a,b]));
+}
+
+function render(schedule, players, played, roundMin, totalMin, courts){
+  const n = players.length;
+  let html = '<table><thead><tr><th>轮次</th>';
+  for(let c=0;c<courts;c++) html += `<th>${c+1} 号场</th>`;
+  html += '<th>场边休息</th></tr></thead><tbody>';
+  for(const r of schedule){
+    html += `<tr><th>第 ${r.round} 轮</th>`;
+    for(let c=0;c<r.groups.length;c++){
+      const g = r.groups[c]; const [t1,t2] = g.teams;
+      html += `<td class="court">${teamStr(t1,players)}<br>
+        <input class="score" data-r="${r.round}" data-c="${c}" data-s="1" type="number" min="0" placeholder="0">
+        <span style="color:var(--warn)"> :</span>
+        <input class="score" data-r="${r.round}" data-c="${c}" data-s="2" type="number" min="0" placeholder="0"><br>
+        ${teamStr(t2,players)}</td>`;
+    }
+    html += `<td class="rest">${r.rest.map(i=>players[i].name).join('、')}</td></tr>`;
+  }
+  html += '</tbody></table>';
+  html += `<div class="row" style="margin-top:12px;align-items:center">
+    <span>积分规则 <select id="winPts"><option value="2,1,0" selected>胜 2 / 平 1 / 负 0</option><option value="3,1,0">胜 3 / 平 1 / 负 0</option><option value="2,0,1">胜 2 / 平 0 / 负 1</option></select></span>
+    <button class="green" onclick="computeRank()">按比分更新排名</button></div>`;
+  html += `<div id="rank"></div>`;
+  const minP = Math.min(...played), max = Math.max(...played);
+  const cover = computeCoverage(schedule, players);
+  html += `<div class="stat">
+    <span>人均上场 <b>${Math.round(played.reduce((a,b)=>a+b,0)/n)} 分钟</b>（${roundMin} 分/轮 × ${schedule.length} 轮）</span>
+    <span>上场时间区间 <b>${minP}–${max} 分</b></span>
+    <span>互相交手覆盖 <b>${cover.pct}%</b>（${cover.hit}/${cover.total} 对）</span>
+  </div>`;
+  html += `<div class="meta">生成时间 ${new Date().toLocaleString('zh-CN')}；共 ${n} 人 / ${courts} 片场 / ${totalMin} 分钟。</div>`;
+  $('result').innerHTML = html;
+  $('paramHint').textContent = `共 ${schedule.length} 轮，每轮 ${courts*4} 人上场、${n-courts*4} 人休息；人均约 ${Math.round(played.reduce((a,b)=>a+b,0)/n)} 分钟。` + balanceNote;
+}
+
+function computeRank(){
+  if(!lastResult){ toast('请先生成'); return; }
+  const [winPts, drawPts, losePts] = ($('winPts') ? $('winPts').value : '2,1,0').split(',').map(Number);
+  const st = new Map(players.map((p,i)=>[i,{name:p.name, pts:0, w:0, d:0, l:0, gf:0, ga:0, diff:0}]));
+  for(const r of lastResult.schedule){
+    for(let c=0;c<r.groups.length;c++){
+      const g = r.groups[c]; const [t1,t2] = g.teams;
+      const i1 = document.querySelector(`input[data-r="${r.round}"][data-c="${c}"][data-s="1"]`);
+      const i2 = document.querySelector(`input[data-r="${r.round}"][data-c="${c}"][data-s="2"]`);
+      const s1 = i1 ? (+i1.value || 0) : 0;
+      const s2 = i2 ? (+i2.value || 0) : 0;
+      if(!i1 || !i2 || (s1===0 && s2===0)) continue;
+      for(const i of t1){ const o=st.get(i); o.gf+=s1; o.ga+=s2; if(s1>s2){o.pts+=winPts;o.w++;} else if(s1<s2){o.pts+=losePts;o.l++;} else {o.pts+=drawPts;o.d++;} }
+      for(const i of t2){ const o=st.get(i); o.gf+=s2; o.ga+=s1; if(s2>s1){o.pts+=winPts;o.w++;} else if(s2<s1){o.pts+=losePts;o.l++;} else {o.pts+=drawPts;o.d++;} }
+    }
+  }
+  const arr = [...st.values()];
+  arr.forEach(o=>o.diff = o.gf - o.ga);
+  arr.sort((a,b)=> b.pts-a.pts || b.diff-a.diff || b.gf-a.gf);
+  let html = '<table><thead><tr><th>名次</th><th>姓名</th><th>积分</th><th>胜</th><th>平</th><th>负</th><th>净胜分</th></tr></thead><tbody>';
+  arr.forEach((o,i)=>{ html += `<tr><td>${i+1}</td><td>${o.name}</td><td><b>${o.pts}</b></td><td>${o.w}</td><td>${o.d}</td><td>${o.l}</td><td>${o.diff>0?'+':''}${o.diff}</td></tr>`; });
+  html += '</tbody></table>';
+  $('rank').innerHTML = html;
+}
+function teamStr(t, players){ return t.map(i=>players[i].name + (players[i].level!=null?`<span class="lv">${players[i].level}</span>`:'')).join(' / '); }
+function computeCoverage(schedule, players){
+  const n = players.length;
+  const opp = new Set(), part = new Set();
+  for(const r of schedule) for(const g of r.groups){
+    const [t1,t2]=g.teams;
+    part.add(pk(t1)); part.add(pk(t2));
+    for(const a of t1) for(const b of t2) opp.add(pk([a,b]));
+  }
+  const total = n*(n-1)/2;
+  // "互相交手"= 当过对手 或 当过队友
+  const hit = [...opp, ...part].filter((v,i,a)=>a.indexOf(v)===i).length;
+  return {hit, total, pct: Math.round(hit/total*100)};
+}
+
+function copyAll(){
+  const txt = $('result').innerText;
+  if(!txt || txt==='尚未生成'){ toast('请先生成'); return; }
+  navigator.clipboard.writeText(txt).then(()=>toast('已复制')).catch(()=>toast('复制失败，请手动选择'));
+}
+
+function saveLocal(){
+  if(!lastResult) return;
+  try{ localStorage.setItem('yuqiu_last', JSON.stringify({at:new Date().toISOString(), players, result:lastResult})); }catch(e){}
+}
+function loadLocal(){ try{ const d=JSON.parse(localStorage.getItem('yuqiu_last')); if(d){ players=d.players||[]; renderRoster(); } }catch(e){} }
+
+// ---- Supabase（可选）----
+function sb(){
+  const url=$('sbUrl').value.trim(), key=$('sbKey').value.trim();
+  if(!url||!key) return null;
+  return {url, key};
+}
+async function sbFetch(path, opt){
+  const c = sb(); if(!c) throw new Error('未填 Supabase URL/Key');
+  const r = await fetch(c.url.replace(/\/$/,'')+path, {headers:{apikey:c.key, Authorization:'Bearer '+c.key, 'Content-Type':'application/json'}, ...opt});
+  if(!r.ok) throw new Error('HTTP '+r.status+' '+await r.text());
+  return r.json();
+}
+async function saveCloud(){
+  if(!lastResult){ toast('请先生成'); return; }
+  try{
+    await sbFetch('/rest/v1/sessions', {method:'POST', body: JSON.stringify({name:'约局 '+new Date().toLocaleString('zh-CN'), payload:lastResult})});
+    toast('已保存到云端');
+  }catch(e){ toast('保存失败：'+e.message); }
+}
+async function loadCloud(){
+  try{
+    const rows = await sbFetch('/rest/v1/sessions?select=*&order=created_at.desc&limit=20');
+    if(!rows.length){ $('cloud').innerHTML = '<div class="meta">暂无历史对局</div>'; return; }
+    $('cloud').innerHTML = '<div class="meta">历史对局（最近 '+rows.length+' 条）：</div>' + rows.map(r=>`<div class="chip">${(r.created_at||'').toString().replace('T',' ').slice(0,16)} · ${r.name||'未命名'}</div>`).join('');
+  }catch(e){ toast('读取失败：'+e.message); }
+}
+
+loadLocal();
+</script>
+</body>
+</html>
