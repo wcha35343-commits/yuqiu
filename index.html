@@ -20,7 +20,7 @@
   textarea{width:100%;min-height:120px;background:rgba(2,6,23,.6);color:var(--txt);border:1px solid var(--line);border-radius:10px;padding:12px;font:14px/1.55 ui-monospace,Consolas,monospace;resize:vertical}
   textarea:focus,input:focus,select:focus{outline:none;border-color:var(--acc);box-shadow:0 0 0 3px rgba(94,234,212,.15)}
   input[type=number]{width:78px;background:rgba(2,6,23,.6);color:var(--txt);border:1px solid var(--line);border-radius:8px;padding:7px 9px}
-  input[type=text]{background:rgba(2,6,23,.6);color:var(--txt);border:1px solid var(--line);border-radius:8px;padding:8px 10px;width:100%}
+  input[type=text],input[type=date],input[type=time]{background:rgba(2,6,23,.6);color:var(--txt);border:1px solid var(--line);border-radius:8px;padding:8px 10px;width:100%}
   button{background:linear-gradient(90deg,var(--acc),var(--acc2));color:#06202a;border:0;border-radius:10px;padding:10px 18px;font-weight:700;cursor:pointer;margin:6px 8px 0 0;transition:.15s;box-shadow:0 4px 14px rgba(94,234,212,.25)}
   button:hover{transform:translateY(-1px);filter:brightness(1.06)}
   button.ghost{background:rgba(255,255,255,.04);color:var(--txt);border:1px solid var(--line);box-shadow:none}
@@ -47,17 +47,81 @@
   .toast.show{opacity:1}
   .score{width:54px;background:rgba(2,6,23,.7);color:var(--txt);border:1px solid var(--line);border-radius:7px;padding:4px 6px;text-align:center}
   select{background:rgba(2,6,23,.7);color:var(--txt);border:1px solid var(--line);border-radius:8px;padding:7px 10px}
-  .mode-btn{background:rgba(255,255,255,.04);border:1px solid var(--line);color:var(--sub);border-radius:999px;padding:8px 18px;font-weight:600;cursor:pointer;margin:4px 6px 0 0;transition:.15s}
-  .mode-btn:hover{color:var(--txt);border-color:var(--acc)}
-  .mode-btn.active{background:linear-gradient(90deg,var(--acc),var(--acc2));color:#06202a;border-color:transparent;box-shadow:0 4px 14px rgba(129,140,248,.3)}
-  @media print{.card{border:0;background:#fff;color:#000;box-shadow:none;backdrop-filter:none}textarea,button,.opts,.mode-btn{display:none}body{background:#fff;color:#000}h1{color:#000;background:none;-webkit-text-fill-color:#000}}
+  .type-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin:6px 0 4px}
+  .type-card{background:rgba(2,6,23,.5);border:1px solid var(--line);border-radius:14px;padding:14px;cursor:pointer;transition:.15s;position:relative}
+  .type-card:hover{border-color:var(--acc);transform:translateY(-1px)}
+  .type-card.active{border-color:var(--acc);box-shadow:0 0 0 3px rgba(94,234,212,.18);background:rgba(94,234,212,.07)}
+  .tc-head{display:flex;align-items:center;gap:8px;font-size:16px;font-weight:700}
+  .tag{font-size:11px;padding:1px 7px;border-radius:999px;font-weight:700}
+  .tag.hot{background:rgba(251,191,36,.18);color:var(--warn)}
+  .tag.new{background:rgba(244,114,182,.16);color:#f472b6}
+  .tc-desc{color:var(--sub);font-size:12.5px;margin:8px 0 12px;line-height:1.55}
+  .tc-go{border:0;border-radius:999px;padding:7px 20px;font-weight:700;cursor:pointer;color:#06202a;width:100%;font-size:14px}
+  .go-open{background:linear-gradient(90deg,#fbbf24,#fb923c)}
+  .go-mens{background:linear-gradient(90deg,#60a5fa,#818cf8)}
+  .go-womens{background:linear-gradient(90deg,#f472b6,#fb7185)}
+  .go-mixed{background:linear-gradient(90deg,#34d399,#5eead4)}
+  .form-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px 14px;margin-top:4px}
+  .f-item{display:flex;flex-direction:column;gap:4px}
+  .f-item>label{color:var(--sub);font-size:12.5px}
+  .f-item input,.f-item select{background:rgba(2,6,23,.6);color:var(--txt);border:1px solid var(--line);border-radius:8px;padding:8px 10px;width:100%}
+  .f-item input:focus,.f-item select:focus{outline:none;border-color:var(--acc)}
+  .f-static{color:var(--txt);font-size:14px;padding:8px 0;border-bottom:1px dashed var(--line)}
+  .est{color:var(--acc);font-size:13px;margin-top:10px}
+  @media print{.card{border:0;background:#fff;color:#000;box-shadow:none;backdrop-filter:none}textarea,button,.opts,.type-card,.form-grid{display:none}body{background:#fff;color:#000}h1{color:#000;background:none;-webkit-text-fill-color:#000}}
 </style>
 </head>
 <body>
 <h1>🏸 羽毛球约局 · 对阵生成器</h1>
 
 <div class="card">
-  <h2>1. 粘贴微信接龙</h2>
+  <h2>1. 选择比赛类型</h2>
+  <div class="type-grid" id="typeGrid">
+    <div class="type-card active" data-mode="open">
+      <div class="tc-head"><b>自由转</b><span class="tag hot">hot</span></div>
+      <div class="tc-desc">随机组合，每人跟更多人搭档与对阵<br>按上场时间均衡，4~60 人可玩</div>
+      <button class="tc-go go-open">发起</button>
+    </div>
+    <div class="type-card" data-mode="mens">
+      <div class="tc-head"><b>男双</b><span class="tag new">new</span></div>
+      <div class="tc-desc">每队 2 名男选手，男双对抗<br>按个人成绩排名，4~36 人可玩</div>
+      <button class="tc-go go-mens">发起</button>
+    </div>
+    <div class="type-card" data-mode="womens">
+      <div class="tc-head"><b>女双</b></div>
+      <div class="tc-desc">每队 2 名女选手，女双对抗<br>按个人成绩排名，4~36 人可玩</div>
+      <button class="tc-go go-womens">发起</button>
+    </div>
+    <div class="type-card" data-mode="mixed">
+      <div class="tc-head"><b>混双</b></div>
+      <div class="tc-desc">每队 1 男 1 女，混双对抗<br>男女分别排名，4~36 人可玩</div>
+      <button class="tc-go go-mixed">发起</button>
+    </div>
+  </div>
+  <div id="modeWarn" style="color:#f87171;font-size:13px;margin:2px 0 0"></div>
+</div>
+
+<div class="card">
+  <h2>2. 预报名信息</h2>
+  <div class="form-grid">
+    <div class="f-item"><label>名称</label><input type="text" id="matchName" value="羽球约局" placeholder="请输入比赛名称"></div>
+    <div class="f-item"><label>类型</label><div class="f-static" id="typeText">自由转</div></div>
+    <div class="f-item"><label>赛制</label>
+      <select id="matchRule">
+        <option selected>一局定胜负，21 分制</option>
+        <option>三局两胜，21 分制</option>
+        <option>一局定胜负，15 分制</option>
+      </select>
+    </div>
+    <div class="f-item"><label>日期</label><input type="date" id="playDate"></div>
+    <div class="f-item"><label>时间</label><input type="time" id="playTime"></div>
+    <div class="f-item"><label>性别</label><div class="f-static" id="genderText">不限</div></div>
+  </div>
+  <div class="est" id="estLine">粘贴名单后自动预估人数与场数</div>
+</div>
+
+<div class="card">
+  <h2>3. 粘贴微信接龙</h2>
   <textarea id="raw" placeholder="每行一人，例如：
 1 张三
 2 李四 7
@@ -73,31 +137,24 @@
 </div>
 
 <div class="card opts">
-  <h2>2. 参数</h2>
+  <h2>4. 参数</h2>
   <div class="row">
-    <span>场地数 <input type="number" id="courts" value="2" min="1" max="10" oninput="updateModeWarn()"></span>
-    <span>每片场人数 <input type="number" id="perCourt" value="6" min="4" max="12"></span>
-    <span>总时长(分) <input type="number" id="totalMin" value="120" min="10" step="10"></span>
-    <span>每轮时长(分) <input type="number" id="roundMin" value="20" min="5" step="5"></span>
+    <span>场地数 <input type="number" id="courts" value="2" min="1" max="10" oninput="updateEst()"></span>
+    <span>每片场人数 <input type="number" id="perCourt" value="6" min="4" max="12" disabled></span>
+    <span>总时长(分) <input type="number" id="totalMin" value="120" min="10" step="10" oninput="updateEst()"></span>
+    <span>每轮时长(分) <input type="number" id="roundMin" value="20" min="5" step="5" oninput="updateEst()"></span>
   </div>
-  <div class="row">
-    <span style="color:var(--sub)">赛制</span>
-    <button class="mode-btn active" data-mode="open">不限</button>
-    <button class="mode-btn" data-mode="mens">男双</button>
-    <button class="mode-btn" data-mode="womens">女双</button>
-    <button class="mode-btn" data-mode="mixed">混双</button>
-  </div>
-  <div id="modeWarn" style="color:#f87171;font-size:13px;margin:2px 0 6px"></div>
   <div class="row">
     <label><input type="checkbox" id="balanceLevel" checked> 按等级均衡两队</label>
     <label><input type="checkbox" id="coverage" checked> 尽量人人互相打过（覆盖率优先）</label>
+    <label><input type="checkbox" id="noStreak" checked> 不连场（每人打一轮至少歇一轮）</label>
   </div>
   <button class="green" onclick="generate()">生成对阵</button>
   <div class="hint" id="paramHint"></div>
 </div>
 
 <div class="card">
-  <h2>3. 对阵表</h2>
+  <h2>5. 对阵表</h2>
   <div class="row">
     <button class="ghost" onclick="copyAll()">复制文本</button>
     <button class="ghost" onclick="copyImage()">复制图片</button>
@@ -111,7 +168,7 @@
 </div>
 
 <div class="card" style="display:none">
-  <h2>4. 保存到 Supabase（可选）</h2>
+  <h2>6. 保存到 Supabase（可选）</h2>
   <div class="hint">不填也能用（仅存浏览器本地）。填入后可将对局存到云端、历史可查。Key 只需 anon 公钥。</div>
   <details style="margin-top:8px"><summary style="color:var(--sub);cursor:pointer">首次使用：在 Supabase 控制台建表（展开）</summary>
   <pre style="background:#0b1220;padding:10px;border-radius:8px;overflow:auto;font-size:12px">create table if not exists sessions (
@@ -143,6 +200,7 @@ let lastImageData = null;
 let mode = 'open';
 let onNeed = null;    // 每轮上场性别需求 {m,f}
 let groupNeed = null; // 每片场 4 人组性别需求 {m,f}
+const TYPE_NAMES = {open:'自由转', mens:'男双', womens:'女双', mixed:'混双'};
 
 function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
 function genderCount(arr, players){
@@ -161,6 +219,16 @@ function teamModeOk(t, players){
 let lastResult = null;
 
 function toast(msg){ const t=$('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),1600); }
+
+document.querySelectorAll('.type-card').forEach(c=>{
+  c.addEventListener('click', ()=>{
+    document.querySelectorAll('.type-card').forEach(x=>x.classList.remove('active'));
+    c.classList.add('active');
+    mode = c.dataset.mode;
+    $('typeText').textContent = TYPE_NAMES[mode] || mode;
+    updateModeWarn(); updateEst();
+  });
+});
 
 function parseRaw(){
   const lines = $('raw').value.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
@@ -181,7 +249,7 @@ function parseRaw(){
   const noLevel = players.filter(p=>p.level==null).length;
   renderRoster();
   toast(`已解析 ${players.length} 人，${noLevel} 人未填等级`);
-  updateModeWarn();
+  updateModeWarn(); updateEst();
 }
 function parseLevel(t){
   let m = t.match(/^(\d+)\s*级?$/); if(m) return +m[1];
@@ -204,23 +272,39 @@ function mk(text, no, partner){
   return {no, name, level, gender, partner: partner||null};
 }
 function renderRoster(){
+  const cntM = players.filter(p=>p.gender==='M').length;
+  const cntF = players.filter(p=>p.gender==='F').length;
+  $('genderText').textContent = players.length ? `男 ${cntM} / 女 ${cntF} / 共 ${players.length}` : '不限';
   $('roster').innerHTML = players.map(p=>
     `<span class="chip"><b>${p.no}.</b> ${p.name}${p.gender?`<span style="color:${p.gender==='M'?'#60a5fa':'#f472b6'};margin-left:3px">${p.gender==='M'?'♂':'♀'}</span>`:''}${p.level!=null?`<span class="lv">${p.level}级</span>`:''}${p.partner?`<span class="pt">固搭:${p.partner}</span>`:''}</span>`
   ).join('');
 }
 function demo(){
-  $('raw').value = ['1 张三 7','2 李四 6','3 王五 7','4 赵六 6','5 孙七 8','6 周八 5','7 吴九 7','8 郑十 6','9 钱十一 8','10 孔十二 5','11 冯十三 7','12 陈十四 6'].join('\n');
+  $('raw').value = ['1 张三 7 男','2 李四 6 男','3 王五 7 男','4 赵六 6 男','5 孙七 8 女','6 周八 5 女','7 吴九 7 女','8 郑十 6 女','9 钱十一 8 男','10 孔十二 5 男','11 冯十三 7 女','12 陈十四 6 男'].join('\n');
   parseRaw();
 }
-function clearAll(){ $('raw').value=''; players=[]; renderRoster(); $('result').innerHTML='<span class="hint">尚未生成</span>'; }
+function clearAll(){ $('raw').value=''; players=[]; renderRoster(); $('result').innerHTML='<span class="hint">尚未生成</span>'; $('estLine').textContent='粘贴名单后自动预估人数与场数'; $('genderText').textContent='不限'; $('paramHint').textContent=''; }
 
+/* 人数/场数预估（参考预选模式文案） */
+function updateEst(){
+  const courts = Math.max(1, +($('courts').value||1));
+  const totalMin = Math.max(10, +($('totalMin').value||120));
+  const roundMin = Math.max(5, +($('roundMin').value||20));
+  const rounds = Math.max(1, Math.floor(totalMin/roundMin));
+  const n = players.length;
+  if(!n){ $('estLine').textContent = '粘贴名单后自动预估人数与场数'; return; }
+  const totalGames = rounds * courts;
+  const per = Math.round(totalGames*4/n*10)/10;
+  $('estLine').textContent = `预计 ${n} 人，每人约 ${per} 场（约 ${Math.round(per*roundMin)} 分钟），共 ${totalGames} 场`;
+}
 function generate(){
   const courts = Math.max(1, +$('courts').value||1);
   const perCourt = Math.max(4, +$('perCourt').value||6);
   const totalMin = Math.max(10, +$('totalMin').value||120);
-  const roundMin = Math.max(5, +$('roundMin').value||20);
+  const roundMin = Math.max(5, +($('roundMin').value||20));
   const balanceLevelRaw = $('balanceLevel').checked;
   const coverage = $('coverage').checked;
+  const noStreak = $('noStreak').checked;
   const n = players.length;
   if(n < courts*4){ toast('人数不足：至少需 '+(courts*4)+' 人'); return; }
   const hasAnyLevel = players.some(p=>p.level!=null);
@@ -228,7 +312,6 @@ function generate(){
   globalLevelAvg = 0;
   if(hasAnyLevel){ const ls = players.filter(p=>p.level!=null).map(p=>p.level); globalLevelAvg = ls.reduce((a,b)=>a+b,0)/ls.length; }
   balanceNote = (balanceLevelRaw && !hasAnyLevel) ? '，未填等级，已忽略等级均衡' : '';
-  /* 赛制由上方按钮组设置 */
   const cntM = players.filter(p=>p.gender==='M').length;
   const cntF = players.filter(p=>p.gender==='F').length;
   if(mode==='mixed'){ onNeed={m:courts*2,f:courts*2}; groupNeed={m:2,f:2}; if(cntM<onNeed.m||cntF<onNeed.f){ mode='open'; balanceNote+='，男女不足混双已降级为不限'; } }
@@ -251,55 +334,63 @@ function generate(){
   const units = [];
   for(let i=0;i<n;i++){ if(unitOf[i]>=0) continue; const pn=players[i].partner; const j=pn?players.findIndex(p=>p.name===pn):-1; if(j>i){ unitOf[i]=units.length; unitOf[j]=units.length; units.push([i,j]); } else units.push([i]); }
 
+  let lastOnSet = null; // 上一轮上场的人（不连场约束）
   const schedule = [];
   for(let r=0;r<rounds;r++){
-    // 选上场：采样 + 均衡（含赛制性别约束）
     let bestOn=null, bestScore=1e9;
     for(let s=0;s<4000;s++){
-      const on = pickOncourt(units, unitOf, played, onPerRound, n);
+      const on = pickOncourt(units, unitOf, played, onPerRound, n, noStreak ? lastOnSet : null);
       if(!on) continue;
       const arr = on.slice();
       const mean = arr.reduce((a,i)=>a+played[i],0)/arr.length;
       const variance = arr.reduce((a,i)=>a+Math.pow(played[i]-mean,2),0)/arr.length;
-      const score = mean + variance*0.05;
+      let streak = 0;
+      if(noStreak && lastOnSet){ for(const i of on) if(lastOnSet.has(i)) streak++; }
+      const score = mean + variance*0.05 + streak*1000;
       if(score<bestScore){ bestScore=score; bestOn=on; }
+      if(noStreak && streak===0 && s>50) break;
     }
     if(!bestOn){ mode='open'; onNeed=null; groupNeed=null; balanceNote+='，性别不满足赛制已降级为不限';
       bestScore=1e9;
-      for(let s=0;s<4000;s++){ const on=pickOncourt(units, unitOf, played, onPerRound, n); if(!on) continue;
+      for(let s=0;s<4000;s++){ const on=pickOncourt(units, unitOf, played, onPerRound, n, noStreak ? lastOnSet : null); if(!on) continue;
         const arr=on.slice(); const mean=arr.reduce((a,i)=>a+played[i],0)/arr.length;
-        if(mean<bestScore){ bestScore=mean; bestOn=on; } } }
+        let streak=0;
+        if(noStreak && lastOnSet){ for(const i of on) if(lastOnSet.has(i)) streak++; }
+        const score=mean + streak*1000;
+        if(score<bestScore){ bestScore=score; bestOn=on; } } }
     const onSet = new Set(bestOn);
     const rest = idx.filter(i=>!onSet.has(i));
-    // 分组：courts 片场，每片 4 人
     const groups = partition(bestOn, courts, players, balanceLevel, coverage, partnerSeen, oppSeen, partner);
-    schedule.push({round:r+1, groups, rest:[...rest]});
+    schedule.push({round:r+1, groups, on:[...bestOn], rest:[...rest]});
     for(const i of bestOn) played[i]+=roundMin;
     for(const g of groups){ recordPairs(g, partnerSeen, oppSeen); }
+    lastOnSet = onSet;
   }
-  lastResult = {courts,perCourt,totalMin,roundMin,rounds,schedule,players,played};
+  lastResult = {courts,perCourt,totalMin,roundMin,rounds,schedule,players,played,mode,matchName:$('matchName').value.trim(),matchRule:$('matchRule').value,playDate:$('playDate').value,playTime:$('playTime').value};
   render(schedule, players, played, roundMin, totalMin, courts);
   saveLocal();
   captureImage();
 }
 
-function pickOncourt(units, unitOf, played, need, n){
-  // 随机化单元顺序，贪心凑够 need 人
-  const order = shuffle(units.map((u,i)=>i));
+function pickOncourt(units, unitOf, played, need, n, lastOnSet){
+  let order = shuffle(units.map((u,i)=>i));
+  if(lastOnSet){
+    // 不连场：优先选上一轮没上场的单元，凑不够再回退
+    const fresh = [], tired = [];
+    for(const ui of order){ const u = units[ui]; let hit = false; for(const i of u) if(lastOnSet.has(i)) hit = true; (hit ? tired : fresh).push(ui); }
+    order = fresh.concat(tired);
+  }
   const chosen = [];
   let cnt = 0;
   for(const ui of order){
     const u = units[ui];
     if(cnt + u.length > need) continue;
-    // 优先选打得少的单元
     chosen.push(ui); cnt += u.length;
     if(cnt===need) break;
   }
   if(cnt!==need) return null;
-  // 打散成人数组
   let on = [];
   for(const ui of chosen) on.push(...units[ui]);
-  // 若单元选择导致人数不符（固搭造成），回退为纯随机散客
   if(on.length!==need){
     const shuffled = shuffle([...Array(n).keys()]).slice(0,need);
     on = shuffled;
@@ -332,28 +423,22 @@ function partition(on, courts, players, balanceLevel, coverage, partnerSeen, opp
     if(score>bestScore){ bestScore=score; best=groups; }
   }
   if(!best){ const sh=on.slice().sort(()=>Math.random()-0.5); best=[]; for(let c=0;c<courts;c++) best.push(sh.slice(c*4,c*4+4)); }
-  // 组内分两队
   return best.map(g=>({teams: splitTeams(g, players, balanceLevel, coverage, partnerSeen, oppSeen, partner)}));
 }
 function splitTeams(g4, players, balanceLevel, coverage, partnerSeen, oppSeen, partner){
-  // 4 人分 2 队各 2 人：3 种分法
   const splits = [[[0,1],[2,3]],[[0,2],[1,3]],[[0,3],[1,2]]];
   let best=null, bestScore=-1e9;
   for(const sp of splits){
     const t1 = [g4[sp[0][0]],g4[sp[0][1]]], t2=[g4[sp[1][0]],g4[sp[1][1]]];
     let sc = 0;
-    // 赛制约束（混双/男双/女双）
     sc += (teamModeOk(t1,players)?1:0)*1000 + (teamModeOk(t2,players)?1:0)*1000;
-    // 固搭同队
     for(const [a,b] of [[t1[0],t1[1]],[t2[0],t2[1]]]){
       if(partner.get(players[a].name)?.has(players[b].name)) sc += 100;
     }
-    // 覆盖率
     if(coverage){
       sc += pairNew(t1,partnerSeen)*30 + pairNew(t2,partnerSeen)*30;
       sc += oppNew(t1,t2,oppSeen)*30;
     }
-    // 等级均衡
     if(balanceLevel){
       const l1 = avgLevel(t1,players), l2 = avgLevel(t2,players);
       sc -= Math.abs(l1-l2)*10;
@@ -371,10 +456,23 @@ function recordPairs(g, partnerSeen, oppSeen){
   partnerSeen.add(pk(t1)); partnerSeen.add(pk(t2));
   for(const a of t1) for(const b of t2) oppSeen.add(pk([a,b]));
 }
+function computeStreaks(schedule){
+  let streak = 0;
+  for(let r=1;r<schedule.length;r++){
+    const prev = new Set(schedule[r-1].on);
+    for(const i of schedule[r].on) if(prev.has(i)) streak++;
+  }
+  return streak;
+}
 
 function render(schedule, players, played, roundMin, totalMin, courts){
   const n = players.length;
-  let html = '<table><thead><tr><th>轮次</th>';
+  const info = lastResult || {};
+  let head = (info.matchName || '羽球约局');
+  const dt = [info.playDate, info.playTime].filter(Boolean).join(' ');
+  if(dt) head += `（${dt}）`;
+  let html = `<div class="meta" style="font-size:14px;color:var(--txt)">${head} · ${info.matchRule || ''} · ${TYPE_NAMES[info.mode] || ''}</div>`;
+  html += '<table><thead><tr><th>轮次</th>';
   for(let c=0;c<courts;c++) html += `<th>${c+1} 号场</th>`;
   html += '<th>场边休息</th></tr></thead><tbody>';
   for(const r of schedule){
@@ -396,10 +494,12 @@ function render(schedule, players, played, roundMin, totalMin, courts){
   html += `<div id="rank"></div>`;
   const minP = Math.min(...played), max = Math.max(...played);
   const cover = computeCoverage(schedule, players);
+  const streak = computeStreaks(schedule);
   html += `<div class="stat">
     <span>人均上场 <b>${Math.round(played.reduce((a,b)=>a+b,0)/n)} 分钟</b>（${roundMin} 分/轮 × ${schedule.length} 轮）</span>
     <span>上场时间区间 <b>${minP}–${max} 分</b></span>
     <span>互相交手覆盖 <b>${cover.pct}%</b>（${cover.hit}/${cover.total} 对）</span>
+    <span>连续上场 <b>${streak} 人次</b>${streak===0?'（无人连场，人人有休息）':''}</span>
   </div>`;
   html += `<div class="meta">生成时间 ${new Date().toLocaleString('zh-CN')}；共 ${n} 人 / ${courts} 片场 / ${totalMin} 分钟。</div>`;
   $('result').innerHTML = html;
@@ -440,14 +540,17 @@ function computeCoverage(schedule, players){
     for(const a of t1) for(const b of t2) opp.add(pk([a,b]));
   }
   const total = n*(n-1)/2;
-  // "互相交手"= 当过对手 或 当过队友
   const hit = [...opp, ...part].filter((v,i,a)=>a.indexOf(v)===i).length;
   return {hit, total, pct: Math.round(hit/total*100)};
 }
 
 function copyAll(){
-  const txt = $('result').innerText;
-  if(!txt || txt==='尚未生成'){ toast('请先生成'); return; }
+  const info = lastResult || {};
+  let head = (info.matchName || '羽球约局');
+  const dt = [info.playDate, info.playTime].filter(Boolean).join(' ');
+  if(dt) head += `（${dt}）`;
+  const txt = head + ' · ' + (info.matchRule||'') + '\n\n' + ($('result').innerText || '');
+  if(!lastResult){ toast('请先生成'); return; }
   navigator.clipboard.writeText(txt).then(()=>toast('已复制')).catch(()=>toast('复制失败，请手动选择'));
 }
 
@@ -457,14 +560,13 @@ function saveLocal(){
 }
 function loadLocal(){ try{ const d=JSON.parse(localStorage.getItem('yuqiu_last')); if(d){ players=d.players||[]; renderRoster(); } }catch(e){} }
 
-// ---- Supabase（可选）----
-function sb(){
+async function sb(){
   const url=$('sbUrl').value.trim(), key=$('sbKey').value.trim();
   if(!url||!key) return null;
   return {url, key};
 }
 async function sbFetch(path, opt){
-  const c = sb(); if(!c) throw new Error('未填 Supabase URL/Key');
+  const c = await sb(); if(!c) throw new Error('未填 Supabase URL/Key');
   const r = await fetch(c.url.replace(/\/$/,'')+path, {headers:{apikey:c.key, Authorization:'Bearer '+c.key, 'Content-Type':'application/json'}, ...opt});
   if(!r.ok) throw new Error('HTTP '+r.status+' '+await r.text());
   return r.json();
@@ -484,10 +586,6 @@ async function loadCloud(){
   }catch(e){ toast('读取失败：'+e.message); }
 }
 
-document.querySelectorAll('.mode-btn').forEach(b=>b.addEventListener('click',()=>{
-  document.querySelectorAll('.mode-btn').forEach(x=>x.classList.remove('active'));
-  b.classList.add('active'); mode = b.dataset.mode; updateModeWarn();
-}));
 function updateModeWarn(){
   const el = $('modeWarn'); if(!el) return;
   const courts = Math.max(1, +($('courts').value || 1));
